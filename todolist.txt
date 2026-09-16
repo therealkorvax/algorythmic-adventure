@@ -1,0 +1,8 @@
+TO DO : 
+
+
+//// ALT PATH ////
+add lasers and mirrors :
+lasers : put a raycast that is recalculated after each move stops at boxes or other lasers / redirected my mirrors
+mirror A : up to left, left to up, down to right, right to up
+mirror B : up to right, right to up, left to down, down to left
