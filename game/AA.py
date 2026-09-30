@@ -86,7 +86,7 @@ playframe = 999
 doppleon=False
 
 #this is for the alternate path
-remix=False
+remix=True
 
 baseposition_x = 0
 baseposition_y = 0
@@ -452,6 +452,7 @@ def resetlevel():
     doppleposition_y = dopplebaseposition_y
     heading = 1
     broken=[]
+    triggerraycasts()
     unlockedexit()
 
 def fullreset():
@@ -1716,24 +1717,24 @@ def lvproperties():
         if level==0:
             zoom=3
             baseposition_x =.5
-            baseposition_y =3.5
+            baseposition_y =.5
             position_x =baseposition_x
             position_y =baseposition_y
             heading = 1
             doppleon=False
             manual=False
-            endtile=[6,0]
-            validtiles=[[0,0],[1,0],[2,0],[3,0],[6,0],[1,-1],[1,-2],[2,-2],[3,-2],[3,-1],[1,1],[1,2],[2,2],[3,2],[3,1]]
-            altswitches=[[2,-2]]
-            killzones=[[1,-1]]
-            altkillzones=[[3,-1]]
-            switches=[[2,2]]
-            spikelist=[[1,1]]
-            reversespikelist=[[3,1]]
-            greentiles=[[5,0]]
-            yellowtiles=[[3,-2]]
-            redtiles=[[3,2]]
-            bluetiles=[[4,0]]
+            endtile=[6,6]
+            validtiles=[[0,0],[1,0],[4,0],[5,0],[6,0],
+                        [0,1],[1,1],[3,1],[4,1],[5,1],[6,1],
+                        [0,2],[1,2],[3,2],[5,2],[6,2],
+                        [0,3],[1,3],[3,3],[5,3],
+                        [0,4],[1,4],[3,4],[5,4],[6,4],
+                        [0,5],[1,5],[2,5],[3,5],[5,5],[6,5],
+                        [0,6],[1,6],[4,6],[5,6],[6,6]]
+            boxes=[[1,1]]
+            redlaser=[[6,3,3]]
+            bluelaser=[[4,5,1]]
+            switches=[[1,5],[6,4]]
 
 #------ Other functions to get game state -------
 
@@ -1778,8 +1779,97 @@ def unlockedexit():
         channel = pygame.mixer.Channel(3)
         channel.play(unlock_sound)
 
-def raycast(x,y,dir):
+def raycast(x,y,dir,depth,col):
+    print("raycast was called")
     global yellowlaser,greenlaser,bluelaser,redlaser,yellowbeam,greenbeam,bluebeam,redbeam,yellowbeamend,greenbeamend,bluebeamend,redbeamend,yellowcornerbeam,greencornerbeam,bluecornerbeam,redcornerbeam
+    # directions : 0 : up, 1 : right, 2 : down, 3 : left
+    if [x,y] not in boxes and [x,y] not in halfboxes and [x,y] not in redlaser and [x,y] not in bluelaser and [x,y] not in greenlaser and [x,y] not in yellowlaser and depth<=20 :
+        if dir == 0 :
+            check= raycast(x,y-1,dir,depth+1,col)
+        if dir == 1 :
+                    check= raycast(x+1,y,dir,depth+1,col)
+        if dir == 2 :
+                    check= raycast(x,y+1,dir,depth+1,col)
+        if dir == 3 :
+                    check= raycast(x-1,y,dir,depth+1,col)
+        if check==False:
+            if col=="red" :
+                redbeamend.append([x,y,dir])
+            if col=="blue" :
+                bluebeamend.append([x,y,dir])
+            if col=="green" :
+                greenbeamend.append([x,y,dir])
+            if col=="yellow" :
+                yellowbeamend.append([x,y,dir])
+        else:
+            if col=="red" :
+                redbeam.append([x,y,(dir+1)%2])
+            if col=="blue" :
+                bluebeam.append([x,y,(dir+1)%2])
+            if col=="green" :
+                greenbeam.append([x,y,(dir+1)%2])
+            if col=="yellow" :
+                yellowbeam.append([x,y,(dir+1)%2])
+        print("raycast performed")
+        return True
+    else:
+        print("raycast has stopped")
+        return False
+
+def triggerraycasts():
+    redbeam.clear()
+    redbeamend.clear()
+    redcornerbeam.clear()
+    bluebeam.clear()
+    bluebeamend.clear()
+    bluecornerbeam.clear()
+    greenbeam.clear()
+    greenbeamend.clear()
+    greencornerbeam.clear()
+    yellowbeam.clear()
+    yellowbeamend.clear()
+    yellowcornerbeam.clear()
+
+    if not switchstate : 
+        for laser in redlaser:
+            if laser[2]==0:
+                raycast(laser[0],laser[1]+1,laser[2],0,"red")
+            if laser[2]==1:
+                raycast(laser[0]+1,laser[1],laser[2],0,"red")
+            if laser[2]==2:
+                raycast(laser[0],laser[1]-1,laser[2],0,"red")
+            if laser[2]==3:
+                raycast(laser[0]-1,laser[1],laser[2],0,"red")
+    if switchstate :
+        for laser in bluelaser:
+            if laser[2]==0:
+                raycast(laser[0],laser[1]+1,laser[2],0,"blue")
+            if laser[2]==1:
+                raycast(laser[0]+1,laser[1],laser[2],0,"blue")
+            if laser[2]==2:
+                raycast(laser[0],laser[1]-1,laser[2],0,"blue")
+            if laser[2]==3:
+                raycast(laser[0]-1,laser[1],laser[2],0,"blue")
+    if not altstate : 
+        for laser in yellowlaser:
+            if laser[2]==0:
+                raycast(laser[0],laser[1]+1,laser[2],0,"yellow")
+            if laser[2]==1:
+                raycast(laser[0]+1,laser[1],laser[2],0,"yellow")
+            if laser[2]==2:
+                raycast(laser[0],laser[1]-1,laser[2],0,"yellow")
+            if laser[2]==3:
+                raycast(laser[0]-1,laser[1],laser[2],0,"yellow")
+    if altstate :
+        for laser in greenlaser:
+            if laser[2]==0:
+                raycast(laser[0],laser[1]+1,laser[2],0,"green")
+            if laser[2]==1:
+                raycast(laser[0]+1,laser[1],laser[2],0,"green")
+            if laser[2]==2:
+                raycast(laser[0],laser[1]-1,laser[2],0,"green")
+            if laser[2]==3:
+                raycast(laser[0]-1,laser[1],laser[2],0,"green")
 
 
 def blockeffects():
@@ -2219,6 +2309,8 @@ def blockeffects():
                     spikesound.set_volume(0.3)
                     channel = pygame.mixer.Channel(3)
                     channel.play(spikesound)
+
+    triggerraycasts()
         
 def killtiles():
     # killzones
@@ -2274,6 +2366,39 @@ def killtiles():
             kill_sound.set_volume(0.25)
             channel = pygame.mixer.Channel(2)
             channel.play(kill_sound)
+
+    
+    for i in range (4):
+        ppos=[position_x, position_y,i]
+        dpos=[doppleposition_x, doppleposition_y,i]
+        if (ppos in redbeam or ppos in redbeamend or ppos in redcornerbeam) and not switchstate :
+            resetlevel()
+            kill_sound = pygame.mixer.Sound("sfx\\killtile.ogg")
+            kill_sound.set_volume(0.25)
+            channel = pygame.mixer.Channel(2)
+            channel.play(kill_sound)
+
+        if (ppos in bluebeam or ppos in bluebeamend or ppos in bluecornerbeam) and switchstate :
+            resetlevel()
+            kill_sound = pygame.mixer.Sound("sfx\\killtile.ogg")
+            kill_sound.set_volume(0.25)
+            channel = pygame.mixer.Channel(2)
+            channel.play(kill_sound)
+
+        if (ppos in yellowbeam or ppos in yellowbeamend or ppos in yellowcornerbeam) and not altstate :
+            resetlevel()
+            kill_sound = pygame.mixer.Sound("sfx\\killtile.ogg")
+            kill_sound.set_volume(0.25)
+            channel = pygame.mixer.Channel(2)
+            channel.play(kill_sound)
+
+        if (ppos in greenbeam or ppos in greenbeamend or ppos in greencornerbeam) and altstate :
+            resetlevel()
+            kill_sound = pygame.mixer.Sound("sfx\\killtile.ogg")
+            kill_sound.set_volume(0.25)
+            channel = pygame.mixer.Channel(2)
+            channel.play(kill_sound)
+        
 
     for tile in greentiles:
             if altstate==True:
@@ -3392,6 +3517,10 @@ def conveyoreffects():
 
     hasmoved.clear()
 
+
+
+
+
 #------ draw function -------
 def draw():
     global playframe,switcheffectanimx,switcheffectanimy,switches,switchmodules,uiframe,switchboost,baseposition_y,baseposition_x,glitchframe,altswitcheffectanimx,altswitcheffectanimy,altswitchboost
@@ -3730,6 +3859,102 @@ def draw():
     for box in halfboxes :
         px.blt(box[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), box[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,16,16,16,16,None,0,zoom)
 
+
+
+
+
+    if not switchstate:
+        for laser in redlaser :
+            if laser[2]==0:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,88,144,16,16,None,270,zoom)
+            elif laser[2]==1:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,88,144,16,16,None,0,zoom)
+            elif laser[2]==2:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,88,144,16,16,None,90,zoom)
+            elif laser[2]==3:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,88,144,16,16,None,180,zoom)
+        for laser in bluelaser :
+            if laser[2]==0:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,72,136,16,16,None,270,zoom)
+            elif laser[2]==1:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,72,136,16,16,None,0,zoom)
+            elif laser[2]==2:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,72,136,16,16,None,90,zoom)
+            elif laser[2]==3:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,72,136,16,16,None,180,zoom)
+        
+        for beam in redbeam :
+            if beam[2]==0:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,104,144,16,16,0,0,zoom)
+            if beam[2]==1:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,104,144,16,16,0,90,zoom)
+        
+        for beam in redbeamend :
+            if beam[2]==0:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,176,144,16,16,0,270,zoom)
+            if beam[2]==1:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,176,144,16,16,0,0,zoom)
+            if beam[2]==2:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,176,144,16,16,0,90,zoom)
+            if beam[2]==3:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,176,144,16,16,0,180,zoom)
+
+        for beam in redcornerbeam :
+            if beam[2]==0:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,120,144,16,16,0,270,zoom)
+            if beam[2]==1:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,120,144,16,16,0,0,zoom)
+            if beam[2]==2:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,120,144,16,16,0,90,zoom)
+            if beam[2]==3:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,120,144,16,16,0,180,zoom)
+
+    else :
+        for laser in redlaser :
+            if laser[2]==0:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,56,136,16,16,None,270,zoom)
+            elif laser[2]==1:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,56,136,16,16,None,0,zoom)
+            elif laser[2]==2:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,56,136,16,16,None,90,zoom)
+            elif laser[2]==3:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,56,136,16,16,None,180,zoom)
+        for laser in bluelaser :
+            if laser[2]==0:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,136,112,16,16,None,270,zoom)
+            elif laser[2]==1:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,136,112,16,16,None,0,zoom)
+            elif laser[2]==2:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,136,112,16,16,None,90,zoom)
+            elif laser[2]==3:
+                px.blt(laser[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), laser[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,136,112,16,16,None,180,zoom)
+        for beam in bluebeam :
+            if beam[2]==0:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,136,128,16,16,0,0,zoom)
+            if beam[2]==1:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,136,128,16,16,0,90,zoom)
+        for beam in bluebeamend :
+            if beam[2]==0:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,208,128,16,16,0,270,zoom)
+            if beam[2]==1:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,208,128,16,16,0,0,zoom)
+            if beam[2]==2:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,208,128,16,16,0,90,zoom)
+            if beam[2]==3:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,208,128,16,16,0,180,zoom)
+        for beam in bluecornerbeam :
+            if beam[2]==0:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,136,144,16,16,0,270,zoom)
+            if beam[2]==1:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,136,144,16,16,0,0,zoom)
+            if beam[2]==2:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,136,144,16,16,0,90,zoom)
+            if beam[2]==3:
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,136,144,16,16,0,180,zoom)
+
+
+
+
     if not altstate:
         for laser in yellowlaser :
             if laser[2]==0:
@@ -3758,7 +3983,7 @@ def draw():
         
         for beam in yellowbeamend :
             if beam[2]==0:
-                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,176,128,16,16,0,270,zoom)
+                px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,176,112,16,16,0,270,zoom)
             if beam[2]==1:
                 px.blt(beam[0]*16*zoom+baseposition_x*16*zoom+(8*(zoom-1)), beam[1]*16*zoom+baseposition_y*16*zoom+(8*(zoom-1)),0,176,112,16,16,0,0,zoom)
             if beam[2]==2:
